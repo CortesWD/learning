@@ -7,7 +7,8 @@ exports.getProducts = (req, res, next) => {
       res.render('shop/product-list', {
         docTitle: 'all products',
         path: '/products',
-        products
+        products,
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => console.log(err))
@@ -22,6 +23,7 @@ exports.getProduct = (req, res, next) => {
         product,
         docTitle: product.title,
         path: '/products',
+        isAuthenticated: req.session.isLoggedIn
       })
     })
     .catch(err => console.log(err))
@@ -33,14 +35,15 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         docTitle: 'Shop',
         path: '/',
-        products
+        products,
+        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => console.log(err))
 }
 
 exports.getCart = (req, res, next) => {
-  const { user } = req;
+  const { session: { isLoggedIn }, user } = req;
   // Populate from the product ID to fetch all product data
   user.populate('cart.items.productId')
     // .execPopulate() this is not available on mongoose 6
@@ -48,7 +51,8 @@ exports.getCart = (req, res, next) => {
       res.render('shop/cart', {
         docTitle: 'your Cart',
         path: '/cart',
-        products: user.cart.items
+        products: user.cart.items,
+        isAuthenticated: isLoggedIn
       });
     })
     .catch(err => console.log(err))
@@ -79,13 +83,14 @@ exports.postCartDelete = (req, res, next) => {
 } */
 
 exports.getOrders = (req, res, next) => {
-  const { user } = req;
+  const { user, session: { isLoggedIn } } = req;
   Order.find({ 'user.userId': user._id })
     .then(orders => {
       res.render('shop/orders', {
         docTitle: 'Your Orders',
         path: '/orders',
-        orders
+        orders,
+        isAuthenticated: isLoggedIn
       });
     })
     .catch(err => console.log(err))
