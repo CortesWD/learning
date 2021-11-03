@@ -10,24 +10,9 @@ exports.getAddProduct = (req, res, next) => {
 };
 
 exports.postAddProduct = (req, res, next) => {
-  const {
-    body: {
-      title,
-      description,
-      imageUrl,
-      price,
-    },
-    user
-  } = req;
+  const { body, user } = req;
 
-  const product = new Product(
-    title,
-    price,
-    description,
-    imageUrl,
-    null,
-    user._id
-  );
+  const product = new Product({...body, userId: user._id});
 
   product
     .save()
@@ -69,9 +54,14 @@ exports.postEditProduct = (req, res, next) => {
       imageUrl,
     } } = req;
 
-  const product = new Product(title, price, description, imageUrl, productId);
-
-  product.save()
+  Product.findById(productId)
+    .then((product) => {
+      product.title = title;
+      product.description = description;
+      product.price = price;
+      product.imageUrl = imageUrl;
+      return product.save();
+    })
     .then((res) => {
       console.log('updated', res);
     })
@@ -80,7 +70,9 @@ exports.postEditProduct = (req, res, next) => {
 }
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
+    // .select('title price -_id')
+    // .populate('userId', 'name')
     .then((products) => {
       res.render('admin/products', {
         products,
@@ -94,7 +86,7 @@ exports.getProducts = (req, res, next) => {
 exports.postDeleteProduct = (req, res, next) => {
   const { body: { productId } } = req;
 
-  Product.deleteById(productId)
+  Product.findByIdAndRemove(productId)
     .then((res) => console.log(res))
     .catch(err => console.log(err))
     .finally(() => {
