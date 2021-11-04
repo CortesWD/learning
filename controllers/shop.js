@@ -8,7 +8,6 @@ exports.getProducts = (req, res, next) => {
         docTitle: 'all products',
         path: '/products',
         products,
-        isAuthenticated: req.session.isLoggedIn
       });
     })
     .catch(err => console.log(err))
@@ -23,7 +22,6 @@ exports.getProduct = (req, res, next) => {
         product,
         docTitle: product.title,
         path: '/products',
-        isAuthenticated: req.session.isLoggedIn
       })
     })
     .catch(err => console.log(err))
@@ -35,15 +33,14 @@ exports.getIndex = (req, res, next) => {
       res.render('shop/index', {
         docTitle: 'Shop',
         path: '/',
-        products,
-        isAuthenticated: req.session.isLoggedIn
+        products
       });
     })
     .catch(err => console.log(err))
 }
 
 exports.getCart = (req, res, next) => {
-  const { session: { isLoggedIn }, user } = req;
+  const { user } = req;
   // Populate from the product ID to fetch all product data
   user.populate('cart.items.productId')
     // .execPopulate() this is not available on mongoose 6
@@ -52,7 +49,6 @@ exports.getCart = (req, res, next) => {
         docTitle: 'your Cart',
         path: '/cart',
         products: user.cart.items,
-        isAuthenticated: isLoggedIn
       });
     })
     .catch(err => console.log(err))
@@ -83,14 +79,13 @@ exports.postCartDelete = (req, res, next) => {
 } */
 
 exports.getOrders = (req, res, next) => {
-  const { user, session: { isLoggedIn } } = req;
+  const { user } = req;
   Order.find({ 'user.userId': user._id })
     .then(orders => {
       res.render('shop/orders', {
         docTitle: 'Your Orders',
         path: '/orders',
         orders,
-        isAuthenticated: isLoggedIn
       });
     })
     .catch(err => console.log(err))
@@ -98,13 +93,13 @@ exports.getOrders = (req, res, next) => {
 
 exports.postOrder = (req, res, next) => {
   const { user } = req;
-  const { name, _id } = user;
+  const { email, _id } = user;
 
   user.populate('cart.items.productId')
     .then(user => {
       const order = new Order({
         user: {
-          name,
+          email,
           userId: _id
         },
         products: user.cart.items.map(i => {
