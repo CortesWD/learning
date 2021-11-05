@@ -5,7 +5,11 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const sendgridTransport = require('nodemailer-sendgrid-transport');
+const { validationResult } = require('express-validator');
 
+/*
+ * Models
+ */
 const User = require('../models/user');
 
 const transporter = nodemailer.createTransport(sendgridTransport({
@@ -21,6 +25,8 @@ exports.getLogin = (req, res, next) => {
     path: '/login',
     docTitle: 'Login',
     errorMessage: errors.length ? errors[0] : null,
+    formData: {},
+    errors: false
   });
 }
 
@@ -30,6 +36,8 @@ exports.getSignup = (req, res, next) => {
     path: '/signup',
     docTitle: 'Signup',
     errorMessage: errors.length ? errors[0] : null,
+    formData: {},
+    errors: []
   });
 };
 
@@ -37,13 +45,20 @@ exports.postLogin = (req, res, next) => {
   const { body } = req;
   const { email, password } = body;
 
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).render('auth/login', {
+      path: '/login',
+      docTitle: 'Login',
+      errorMessage: errors.array()[0].msg,
+      formData: body,
+      errors: true
+    });
+  }
+
   User.findOne({ email })
     .then((user) => {
-      if (!user) {
-        req.flash('error', 'invalid email/password');
-        return res.redirect('/login');
-      }
-
       bcrypt.compare(password, user.password)
         .then((match) => {
           if (match) {
@@ -74,18 +89,23 @@ exports.postSignup = (req, res, next) => {
     confirmPassword
   } = body;
 
-  User.findOne({ email })
-    .then(userDoc => {
-      if (userDoc) {
-        req.flash('error', 'email exist already');
-        res.redirect('/signup');
-      }
+  const errors = validationResult(req);
 
-      return bcrypt.hash(userPswd, 12)
-        .then((password) => {
-          const user = new User({ email, password, cart: { items: [] } })
-          return user.save();
-        })
+  if (!errors.isEmpty()) {
+    console.log(errors);
+    return res.status(422).render('auth/signup', {
+      path: '/signup',
+      docTitle: 'Signup',
+      errorMessage: errors.array()[0].msg,
+      formData: body,
+      errors: errors.array()
+    });
+  }
+
+  return bcrypt.hash(userPswd, 12)
+    .then((password) => {
+      const user = new User({ email, password, cart: { items: [] } })
+      return user.save();
     })
     .then(() => {
       res.redirect('/login');
@@ -115,7 +135,7 @@ exports.getReset = (req, res, next) => {
   });
 }
 
-exports.postRest = (req, res, next) => {
+exports.postReset = (req, res, next) => {
   const { body: { email } } = req;
 
   crypto.randomBytes(32, (err, buffer) => {

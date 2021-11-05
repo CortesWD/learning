@@ -3,6 +3,7 @@
  */
 const path = require('path');
 const express = require('express');
+const { body } = require('express-validator');
 
 /*
  * Controllers
@@ -21,18 +22,41 @@ const {
 
 const router = express.Router();
 
+const productValidation = () => {
+  return [
+    body('title', 'set a valid title')
+      .isLength({ min: 3 })
+      .isString()
+      .trim(),
+
+    body('imageUrl', 'image must be an url')
+      .isURL(),
+
+    body('price', 'invalid price')
+      .isFloat()
+      .custom((value, { req }) => {
+        if (parseFloat(value) <= 0) throw new Error('cannot be zero')
+        return true;
+      }),
+
+    body('description', 'needs a description')
+      .isLength({ min: 15, max: 400 })
+      .trim()
+  ]
+}
+
 
 
 // /admin/add-product => GET
 router.get('/add-product', isAuth, getAddProduct);
 // /admin/add-product => POST
-router.post('/add-product', isAuth, postAddProduct);
+router.post('/add-product', productValidation(), isAuth, postAddProduct);
 
 router.get('/products', isAuth, getProducts);
 
 router.get('/edit-product/:productId', isAuth, getEditProduct);
 
-router.post('/edit-product', isAuth, postEditProduct);
+router.post('/edit-product', productValidation(), isAuth, postEditProduct);
 
 router.post('/delete-product', isAuth, postDeleteProduct);
 

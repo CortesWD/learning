@@ -1,3 +1,11 @@
+/*
+ * Dependencies
+ */
+const { validationResult } = require('express-validator');
+
+/*
+ * Models
+ */
 const Product = require("../models/product");
 
 exports.getAddProduct = (req, res, next) => {
@@ -6,11 +14,26 @@ exports.getAddProduct = (req, res, next) => {
       docTitle: 'Add product',
       path: '/admin/add-product',
       editing: false,
+      errorMessage: null,
+      errors: [],
     });
 };
 
 exports.postAddProduct = (req, res, next) => {
   const { body, user } = req;
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).render('admin/edit-product',
+      {
+        docTitle: 'Add product',
+        path: '/admin/add-product',
+        editing: false,
+        product: body,
+        errorMessage: errors.array()[0].msg,
+        errors: errors.array(),
+      });
+  }
 
   const product = new Product({ ...body, userId: user._id });
 
@@ -38,6 +61,8 @@ exports.getEditProduct = (req, res, next) => {
           path: null,
           editing: edit,
           product,
+          errorMessage: null,
+          errors: [],
         });
     })
     .catch(err => console.log(err));
@@ -52,12 +77,27 @@ exports.postEditProduct = (req, res, next) => {
       description,
       price,
       imageUrl,
-    } } = req;
+    }, body } = req;
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(422).render('admin/edit-product',
+      {
+        docTitle: 'Edit product',
+        path: null,
+        editing: true,
+        product: {
+          ...body,
+          _id: productId
+        },
+        errorMessage: errors.array()[0].msg,
+        errors: errors.array(),
+      });
+  }
 
   Product.findById(productId)
     .then((product) => {
       if (product.userId.toString() !== req.user._id.toString()) return res.redirect('/');
-
       product.title = title;
       product.description = description;
       product.price = price;
@@ -86,7 +126,7 @@ exports.getProducts = (req, res, next) => {
 exports.postDeleteProduct = (req, res, next) => {
   const { body: { productId } } = req;
 
-  Product.deleteOne({_id: productId, userId: req.user._id})
+  Product.deleteOne({ _id: productId, userId: req.user._id })
     .then((res) => console.log(res))
     .catch(err => console.log(err))
     .finally(() => {

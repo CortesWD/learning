@@ -59,7 +59,7 @@ app.use((req, res, next) => {
   const { session } = req;
   const { user } = session;
   if (!user) return next();
-  /* This is to keep every request with the dummy user */
+
   User.findById(user._id)
     .then((user) => {
       req.user = user;
@@ -69,10 +69,13 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res, next) => {
+  /**
+   * Locals is to set vars across all requests
+   */
   res.locals.isAuthenticated = req.session.isLoggedIn;
   res.locals.csrfToken = req.csrfToken();
   next();
-})
+});
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
