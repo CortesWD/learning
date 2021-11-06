@@ -181,4 +181,7 @@ dist
 !.vscode/*.code-snippets
 db/
 db/*
+images/
+images/*
+data/invoices/
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,node

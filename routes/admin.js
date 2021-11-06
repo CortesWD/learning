@@ -29,9 +29,6 @@ const productValidation = () => {
       .isString()
       .trim(),
 
-    body('imageUrl', 'image must be an url')
-      .isURL(),
-
     body('price', 'invalid price')
       .isFloat()
       .custom((value, { req }) => {
