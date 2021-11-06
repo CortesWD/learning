@@ -37,12 +37,10 @@ const productValidation = () => {
       }),
 
     body('description', 'needs a description')
-      .isLength({ min: 15, max: 400 })
+      .isLength({ min: 5, max: 400 })
       .trim()
   ]
 }
-
-
 
 // /admin/add-product => GET
 router.get('/add-product', isAuth, getAddProduct);

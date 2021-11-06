@@ -17,13 +17,37 @@ const { catchError } = require('../util/catch-error');
  */
 const rootDir = require('./../util/path');
 
+const ITEMS_PER_PAGE = 2;
+
+const pagination = (page, totalProducts) => {
+  return {
+    hasNextPage: ITEMS_PER_PAGE * page < totalProducts,
+    currentPage: page,
+    hasPreviousPage: page > 1,
+    nextPage: page + 1,
+    previousPage: page - 1,
+    lastPage: Math.ceil(totalProducts / ITEMS_PER_PAGE)
+  }
+};
+
 exports.getProducts = (req, res, next) => {
-  Product.find()
+  const { query: { page: pageQuery = 1 } } = req;
+  const page = parseFloat(pageQuery);
+  let totalProducts;
+
+  Product.find().countDocuments()
+    .then(numProducts => {
+      totalProducts = numProducts;
+      return Product.find()
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE)
+    })
     .then((products) => {
       res.render('shop/product-list', {
         docTitle: 'all products',
         path: '/products',
         products,
+        ...pagination(page, totalProducts)
       });
     })
     .catch(err => catchError(err, next))
@@ -44,12 +68,23 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
-  Product.find()
+  const { query: { page: pageQuery = 1 } } = req;
+  const page = parseFloat(pageQuery);
+  let totalProducts;
+
+  Product.find().countDocuments()
+    .then(numProducts => {
+      totalProducts = numProducts;
+      return Product.find()
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE)
+    })
     .then(products => {
       res.render('shop/index', {
         docTitle: 'Shop',
         path: '/',
-        products
+        products,
+        ...pagination(page, totalProducts)
       });
     })
     .catch(err => catchError(err, next))
@@ -146,7 +181,7 @@ exports.getInvoice = (req, res, next) => {
       if (!order) return next(new Error('no order found'));
 
       if (order.user.userId.toString() !== req.user._id.toString()) return next(new Error('unauthorized'));
-      
+
       const pdfDoc = new PDFDocument();
 
       pdfDoc.pipe(fs.createWriteStream(invoicePath));
@@ -154,7 +189,7 @@ exports.getInvoice = (req, res, next) => {
 
       pdfDoc
         .fontSize(26)
-        .text('Invoice', {underline: true});
+        .text('Invoice', { underline: true });
 
       pdfDoc.text('------------------------');
 
