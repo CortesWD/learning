@@ -11,6 +11,7 @@ const { validationResult } = require('express-validator');
  * Models
  */
 const User = require('../models/user');
+const { catchError } = require('../util/catch-error');
 
 const transporter = nodemailer.createTransport(sendgridTransport({
   auth: {
@@ -75,10 +76,10 @@ exports.postLogin = (req, res, next) => {
           }
         })
         .catch(err => {
-          console.log(err)
+          catchError(err, next)
         });
     })
-    .catch(err => console.log(err))
+    .catch(err => catchError(err, next))
 }
 
 exports.postSignup = (req, res, next) => {
@@ -115,7 +116,7 @@ exports.postSignup = (req, res, next) => {
         html: '<h1>Welcome, you successfuly signed up</h1>'
       });
     })
-    .catch(err => console.log(err));
+    .catch(err => catchError(err, next));
 };
 
 exports.postLogout = (req, res, next) => {
@@ -164,7 +165,7 @@ exports.postReset = (req, res, next) => {
           `
         });
       })
-      .catch(e => console.log(e))
+      .catch(err => catchError(err, next))
   })
 }
 

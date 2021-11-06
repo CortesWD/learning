@@ -27,7 +27,8 @@ const authRoutes = require('./routes/auth');
 /*
  * Controllers
  */
-const { get404 } = require('./controllers/errors');
+const { get404, get500 } = require('./controllers/errors');
+const { catchError } = require('./util/catch-error');
 
 const app = express();
 
@@ -55,18 +56,6 @@ app.use(csrfProtection);
 
 app.use(flash());
 
-app.use((req, res, next) => {
-  const { session } = req;
-  const { user } = session;
-  if (!user) return next();
-
-  User.findById(user._id)
-    .then((user) => {
-      req.user = user;
-      next();
-    })
-    .catch(err => console.log(err))
-});
 
 app.use((req, res, next) => {
   /**
@@ -77,10 +66,37 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  const { session } = req;
+  const { user } = session;
+  if (!user) return next();
+
+  User.findById(user._id)
+    .then((user) => {
+      if (!user) return next();
+      req.user = user;
+      next();
+    })
+    .catch(err => catchError(err, next));
+});
+
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
+app.get('/500', get500);
 app.use(get404);
+
+/**
+ *  Error middleware to handle errors
+ * when next(error) its called
+ */
+app.use((error, req, res, next) => {
+  // res.status(500).render('500', {
+  //   docTitle: 'Server Error',
+  //   path: null,
+  // });
+  res.redirect('/500');
+});
 
 mongoose.connect(MONGODB_URI)
   .then(() => {

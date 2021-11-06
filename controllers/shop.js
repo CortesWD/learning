@@ -3,6 +3,7 @@
  */
 const Order = require('../models/order');
 const Product = require("../models/product");
+const { catchError } = require('../util/catch-error');
 
 exports.getProducts = (req, res, next) => {
   Product.find()
@@ -13,7 +14,7 @@ exports.getProducts = (req, res, next) => {
         products,
       });
     })
-    .catch(err => console.log(err))
+    .catch(err => catchError(err, next))
 };
 
 exports.getProduct = (req, res, next) => {
@@ -27,7 +28,7 @@ exports.getProduct = (req, res, next) => {
         path: '/products',
       })
     })
-    .catch(err => console.log(err))
+    .catch(err => catchError(err, next))
 };
 
 exports.getIndex = (req, res, next) => {
@@ -39,7 +40,7 @@ exports.getIndex = (req, res, next) => {
         products
       });
     })
-    .catch(err => console.log(err))
+    .catch(err => catchError(err, next))
 }
 
 exports.getCart = (req, res, next) => {
@@ -54,7 +55,7 @@ exports.getCart = (req, res, next) => {
         products: user.cart.items,
       });
     })
-    .catch(err => console.log(err))
+    .catch(err => catchError(err, next))
 }
 
 exports.postCart = (req, res, next) => {
@@ -69,9 +70,8 @@ exports.postCart = (req, res, next) => {
 exports.postCartDelete = (req, res, next) => {
   const { body: { productId }, user } = req;
   user.removeFromCart(productId)
-    .then(res => console.log(res))
-    .catch(err => console.err(err))
-    .finally(() => res.redirect('/cart'));
+    .then(res => res.redirect('/cart'))
+    .catch(err => catchError(err, next))
 }
 
 /* exports.getCheckout = (req, res, next) => {
@@ -91,7 +91,7 @@ exports.getOrders = (req, res, next) => {
         orders,
       });
     })
-    .catch(err => console.log(err))
+    .catch(err => catchError(err, next))
 }
 
 exports.postOrder = (req, res, next) => {
@@ -115,7 +115,9 @@ exports.postOrder = (req, res, next) => {
       });
       return order.save();
     })
-    .then(() => user.clearCart())
-    .catch(err => console.log(err))
-    .finally(() => res.redirect('/orders'));
+    .then(() => {
+      user.clearCart();
+      res.redirect('/orders');
+    })
+    .catch(err => catchError(err, next))
 }
