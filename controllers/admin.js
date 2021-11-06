@@ -51,7 +51,7 @@ exports.postAddProduct = (req, res, next) => {
   product
     .save()
     .then(() => res.redirect('/admin/products'))
-    .catch(err =>  catchError(err, next))
+    .catch(err => catchError(err, next))
 };
 
 
@@ -115,7 +115,7 @@ exports.postEditProduct = (req, res, next) => {
       if (image) {
         deleteFile(product.imageUrl);
         product.imageUrl = `/${image.path}`;
-        
+
       }
       return product.save()
         .then(() => res.redirect('/admin/products'))
@@ -143,10 +143,27 @@ exports.postDeleteProduct = (req, res, next) => {
 
   Product.findById(productId)
     .then(product => {
-      if(!product) return next(new Error('no product found'));
+      if (!product) return next(new Error('no product found'));
       deleteFile(product.imageUrl);
-      return  Product.deleteOne({ _id: productId, userId: req.user._id })
+      return Product.deleteOne({ _id: productId, userId: req.user._id })
     })
     .then(() => res.redirect('/admin/products'))
     .catch(err => catchError(err, next))
 };
+
+exports.deleteProduct = (req, res, next) => {
+  const { params: { productId } } = req;
+
+  Product.findById(productId)
+    .then(product => {
+      if (!product) return next(new Error('no product found'));
+      deleteFile(product.imageUrl);
+      return Product.deleteOne({ _id: productId, userId: req.user._id })
+    })
+    .then(() => {
+      res.status(200).json({ message: 'success' });
+    })
+    .catch(err => {
+      res.status(500).json({ message: 'failed' });
+    })
+}

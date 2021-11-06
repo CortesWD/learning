@@ -17,7 +17,8 @@ const {
   getProducts,
   getEditProduct,
   postEditProduct,
-  postDeleteProduct
+  postDeleteProduct,
+  deleteProduct
 } = AdminController;
 
 const router = express.Router();
@@ -53,7 +54,8 @@ router.get('/edit-product/:productId', isAuth, getEditProduct);
 
 router.post('/edit-product', productValidation(), isAuth, postEditProduct);
 
-router.post('/delete-product', isAuth, postDeleteProduct);
+// router.post('/delete-product', isAuth, postDeleteProduct);
+router.delete('/product/:productId', isAuth, deleteProduct);
 
 
 module.exports = router;
