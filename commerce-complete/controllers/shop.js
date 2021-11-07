@@ -163,13 +163,13 @@ exports.getCheckout = (req, res, next) => {
         cancel_url: `${baseUrl}/cancel`,
       })
     })
-    .then((session) => {
+    .then(({ id: sessionId }) => {
       res.render('shop/checkout', {
         docTitle: 'Checkout',
         path: '/checkout',
         products,
         totalSum: products.reduce((total, curr) => total + (curr.quantity * curr.productId.price), 0),
-        sessionId: session.id
+        sessionId
       });
     })
     .catch(err => catchError(err, next))
@@ -203,7 +203,7 @@ exports.postOrder = (req, res, next) => {
     .catch(err => catchError(err, next))
 }
 
-exports.getCheckoutSuccess= (req, res, next) => {
+exports.getCheckoutSuccess = (req, res, next) => {
   const { user } = req;
   const { email, _id } = user;
 
