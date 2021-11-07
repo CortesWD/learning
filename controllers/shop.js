@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const stripe = require('stripe')('sk_test_51JtHqrGby58Y9w3H0yWh1ZSflqtkIzn4Hw35GLQm1vM1kaKOW0xf5Uay0rstzW8ZTzb78P4mE4iTu8xo7rPpISrw00zZX3Nm00');
 
 /*
  * Models
@@ -95,11 +96,11 @@ exports.getCart = (req, res, next) => {
   // Populate from the product ID to fetch all product data
   user.populate('cart.items.productId')
     // .execPopulate() this is not available on mongoose 6
-    .then(user => {
+    .then(userDoc => {
       res.render('shop/cart', {
         docTitle: 'your Cart',
         path: '/cart',
-        products: user.cart.items,
+        products: userDoc.cart.items,
       });
     })
     .catch(err => catchError(err, next))
@@ -121,13 +122,6 @@ exports.postCartDelete = (req, res, next) => {
     .catch(err => catchError(err, next))
 }
 
-/* exports.getCheckout = (req, res, next) => {
-  res.render('shop/checkout', {
-    docTitle: 'Checkout',
-    path: '/checkout'
-  });
-} */
-
 exports.getOrders = (req, res, next) => {
   const { user } = req;
   Order.find({ 'user.userId': user._id })
@@ -141,7 +135,75 @@ exports.getOrders = (req, res, next) => {
     .catch(err => catchError(err, next))
 }
 
+
+exports.getCheckout = (req, res, next) => {
+  let products;
+  const { user } = req;
+  const baseUrl = `${req.protocol}://${req.get('host')}/checkout`;
+  // Populate from the product ID to fetch all product data
+  user.populate('cart.items.productId')
+    // .execPopulate() this is not available on mongoose 6
+    .then(userDoc => {
+      const { cart: { items } } = userDoc;
+      products = items;
+      // stripe.checkout.session is for older stripe version
+      return stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: products.map(p => {
+          const { productId: { title, description, price }, quantity } = p;
+          return {
+            name: title,
+            description,
+            amount: price * 100,
+            currency: 'usd',
+            quantity
+          }
+        }),
+        success_url: `${baseUrl}/success`,
+        cancel_url: `${baseUrl}/cancel`,
+      })
+    })
+    .then((session) => {
+      res.render('shop/checkout', {
+        docTitle: 'Checkout',
+        path: '/checkout',
+        products,
+        totalSum: products.reduce((total, curr) => total + (curr.quantity * curr.productId.price), 0),
+        sessionId: session.id
+      });
+    })
+    .catch(err => catchError(err, next))
+}
+
 exports.postOrder = (req, res, next) => {
+  const { user } = req;
+  const { email, _id } = user;
+
+  user.populate('cart.items.productId')
+    .then(user => {
+      const order = new Order({
+        user: {
+          email,
+          userId: _id
+        },
+        products: user.cart.items.map(i => {
+          return {
+            quantity: i.quantity,
+            // _doc returns just the data
+            product: { ...i.productId._doc }
+          };
+        })
+      });
+      return order.save();
+    })
+    .then(() => {
+      user.clearCart();
+      res.redirect('/orders');
+    })
+    .catch(err => catchError(err, next))
+}
+
+exports.getCheckoutSuccess= (req, res, next) => {
   const { user } = req;
   const { email, _id } = user;
 

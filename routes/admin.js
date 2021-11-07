@@ -1,7 +1,6 @@
 /*
  * Dependencies
  */
-const path = require('path');
 const express = require('express');
 const { body } = require('express-validator');
 

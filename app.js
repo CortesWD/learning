@@ -123,6 +123,9 @@ app.use((error, req, res, next) => {
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    app.listen(3000);
+    app.listen(3000, (err) => {
+      if (err) throw new Error(err)
+      console.log('ready to go');
+    });
   })
   .catch(err => console.log(err));

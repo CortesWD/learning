@@ -1,0 +1,36 @@
+<%- include('../includes/head.ejs') %>
+    <link rel="stylesheet" href="/css/cart.css" />
+    </head>
+
+    <body>
+        <%- include('../includes/navigation.ejs') %>
+        <main>
+          <% if (products.length > 0) { %>
+              <ul class="cart__item-list">
+                  <% products.forEach(p => { %>
+                      <li class="cart__item">
+                          <p><strong><%= p.productId.title %></strong> (<%= p.quantity %>)</p>
+                      </li>
+                  <% }) %>
+              </ul>
+              <div class="centered">
+                <h2>Total: <%= totalSum %> </h2>
+              </div>
+              <div class="centered">
+                <button class="btn" type="button" id="order-btn">ORDER</button>
+                <script src="https://js.stripe.com/v3/"></script>
+                <script>
+                  const stripe = Stripe('pk_test_51JtHqrGby58Y9w3HraJ7gYg3AesRq09FBeu27n7lGa8Syv8eoLZqRLahp4B00rvq5Fflqcwtl9UZzraNH9tpk1Rh00kWKcRnC0');
+                  const orderBtn = document.getElementById('order-btn');
+                  orderBtn.addEventListener('click', () => {
+                    stripe.redirectToCheckout({
+                      sessionId: '<%= sessionId %>'
+                    });
+                  });
+                </script>
+              </div>
+          <% } else { %>
+              <h1>No products</h1>
+          <% } %>
+      </main>
+      <%- include('../includes/end.ejs') %>
