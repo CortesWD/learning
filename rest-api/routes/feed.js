@@ -9,7 +9,13 @@ const { body } = require('express-validator');
  */
 const feedController = require('../controllers/feed');
 
-const { getPosts, createPost, getPost } = feedController;
+const {
+  getPosts,
+  createPost,
+  getPost,
+  updatePost,
+  deletePost,
+} = feedController;
 
 const router = express.Router();
 
@@ -27,6 +33,8 @@ const createPostValidations = () => {
 router.get('/posts', getPosts);
 router.post('/post', createPostValidations(), createPost);
 router.get('/post/:postId', getPost);
+router.put('/post/:postId', createPostValidations(), updatePost);
+router.delete('/post/:postId', deletePost)
 
 
 module.exports = router;
