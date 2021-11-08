@@ -11,6 +11,7 @@ const multer = require('multer');
  * Routes
  */
 const feedRoutes = require('./routes/feed');
+const authRoutes = require('./routes/auth');
 
 const MONGODB_URI = 'mongodb://localhost:27017/messages';
 
@@ -54,15 +55,16 @@ app.use((req, res, next) => {
 });
 
 app.use('/feed', feedRoutes);
+app.use('/auth', authRoutes);
 
 /**
  *  Error middleware to handle errors
  * when next(error) its called
  */
 app.use((error, req, res, next) => {
-  console.log(error);
-  const { statusCode = 500, message } = error;
-  res.status(statusCode).json({ message });
+  console.log('e', error);
+  const { statusCode = 500, message, data } = error;
+  res.status(statusCode).json({ message, data });
 });
 
 mongoose.connect(MONGODB_URI)
