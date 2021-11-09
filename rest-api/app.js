@@ -62,7 +62,7 @@ app.use('/auth', authRoutes);
  * when next(error) its called
  */
 app.use((error, req, res, next) => {
-  console.log('e', error);
+  console.log(error);
   const { statusCode = 500, message, data } = error;
   res.status(statusCode).json({ message, data });
 });

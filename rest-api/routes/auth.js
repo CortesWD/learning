@@ -5,16 +5,27 @@ const express = require('express');
 const { body } = require('express-validator');
 
 /*
+ * Middleware
+ */
+const isAuth = require('./../middleware/is-auth');
+
+/*
  * Controllers
  */
 const authController = require('./../controllers/auth');
+
 
 /*
  * Models
  */
 const User = require('./../models/user');
 
-const { signup } = authController;
+const {
+  signup,
+  login,
+  getStatus,
+  updateStatus
+} = authController;
 
 const router = express.Router();
 
@@ -38,8 +49,21 @@ const signupValidations = () => {
         .not().isEmpty()
       
   ];
-}
+};
+
+const statusValidations = () => {
+  return [
+    body('status')
+      .trim()
+      .isString()
+      .not()
+      .isEmpty()
+  ]
+};
 
 router.put('/signup', signupValidations(), signup);
+router.post('/login', login);
+router.get('/status', isAuth, getStatus);
+router.patch('/status', isAuth, statusValidations(), updateStatus);
 
 module.exports = router;
