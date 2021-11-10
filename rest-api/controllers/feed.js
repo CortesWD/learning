@@ -4,6 +4,11 @@
 const { validationResult } = require('express-validator');
 
 /*
+ * Socket
+ */
+const { getIO } = require('./../socket');
+
+/*
  * Models
  */
 const Post = require('./../models/post');
@@ -23,7 +28,9 @@ exports.getPosts = async (req, res, next) => {
 
   try {
     const totalItems = await Post.countDocuments();
-    const posts = await Post.find().populate('creator')
+    const posts = await Post.find()
+      .populate('creator')
+      .sort({ createdAt: -1 })
       .skip((page - 1) * ITEMS_PER_PAGE)
       .limit(ITEMS_PER_PAGE);
 
@@ -65,15 +72,26 @@ exports.createPost = async (req, res, next) => {
 
     await user.save();
 
-    res
-      .status(201)
-      .json({
-        message: 'created successfully',
-        post,
+    const postData = {
+      post: {
+        ...post._doc,
         creator: {
           _id: user._id,
           name: user.name
         },
+      }
+    };
+
+    getIO().emit('posts', {
+      action: 'create',
+      ...postData
+    });
+
+    res
+      .status(201)
+      .json({
+        message: 'created successfully',
+        ...postData
       });
 
   } catch (error) {
@@ -121,7 +139,7 @@ exports.updatePost = async (req, res, next) => {
   }
 
   try {
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId).populate('creator');
 
     if (!post) {
       const error = new Error('post not found');
@@ -129,7 +147,7 @@ exports.updatePost = async (req, res, next) => {
       throw error;
     }
 
-    if (post.creator.toString() !== userId) {
+    if (post.creator._id.toString() !== userId) {
       const error = new Error('user not authorized to do this op');
       error.statusCode = 403;
       throw error;
@@ -142,6 +160,11 @@ exports.updatePost = async (req, res, next) => {
     post.imageUrl = imageUrl;
 
     const updatedPost = await post.save();
+
+    getIO().emit('posts', {
+      action: 'update',
+      post: updatedPost
+    })
 
     res.status(201).json({ post: updatedPost });
 
@@ -177,6 +200,11 @@ exports.deletePost = async (req, res, next) => {
     if (deletePost) {
       user.posts.pull(postId);
       await user.save();
+
+      getIO().emit('posts', {
+        action: 'delete',
+        post: postId
+      });
 
       res.status(200).json({ message: 'element deleted' });
     };
