@@ -36,18 +36,18 @@ const signupValidations = () => {
       .custom((value, { req }) => {
         return User.findOne({ email: value })
           .then(userDoc => {
-            if(userDoc) return Promise.reject('enter a valid email');
+            if (userDoc) return Promise.reject('enter a valid email');
             return true;
           });
       })
       .normalizeEmail(),
-      body('password', 'invalid Email')
-        .trim()
-        .isLength({min: 5}),
-      body('name')
-        .trim()
-        .not().isEmpty()
-      
+    body('password', 'invalid Email')
+      .trim()
+      .isLength({ min: 5 }),
+    body('name')
+      .trim()
+      .not().isEmpty()
+
   ];
 };
 

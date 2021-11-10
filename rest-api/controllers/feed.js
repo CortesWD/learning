@@ -12,39 +12,34 @@ const User = require('./../models/user');
 /*
  * Others
  */
-const { catchError } = require('../util/catch-error');
+const { catchError } = require('./../util/catch-error');
 const { deleteFile } = require('./../util/file');
 
 const ITEMS_PER_PAGE = 2;
 
-exports.getPosts = (req, res, next) => {
+exports.getPosts = async (req, res, next) => {
   const { query: { page: queryPage = 1 } } = req;
   const page = parseFloat(queryPage);
-  let totalItems;
 
-  Post.countDocuments()
-    .then(count => {
-      totalItems = count;
-      return Post.find()
-        .skip((page - 1) * ITEMS_PER_PAGE)
-        .limit(ITEMS_PER_PAGE)
-    })
-    .then(postsDoc => {
-      res.status(200)
-        .json({
-          posts: postsDoc,
-          totalItems
-        })
-    })
-    .catch(err => {
-      catchError(err, next);
-    })
+  try {
+    const totalItems = await Post.countDocuments();
+    const posts = await Post.find().populate('creator')
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE);
+
+    res
+      .status(200)
+      .json({ posts, totalItems });
+
+  } catch (err) {
+    catchError(err, next);
+  }
 };
 
-exports.createPost = (req, res, next) => {
+exports.createPost = async (req, res, next) => {
   const errors = validationResult(req);
   const { body, file, userId } = req;
-  let creator;
+
   if (!file) {
     const error = new Error('no image sent');
     error.statusCode = 422;
@@ -63,52 +58,48 @@ exports.createPost = (req, res, next) => {
     creator: userId
   });
 
-  post.save()
-    .then(() => {
-      return User.findById(userId);
-    })
-    .then((user) => {
-      creator = user;
-      user.posts.push(post);
-      return user.save();
-    })
-    .then(() => {
-      res
-        .status(201)
-        .json({
-          message: 'created successfully',
-          post,
-          creator: {
-            _id: creator._id,
-            name: creator.name
-          },
-        })
-    })
-    .catch(err => {
-      catchError(err, next);
-    });
+  try {
+    await post.save();
+    const user = await User.findById(userId);
+    user.posts.push(post);
+
+    await user.save();
+
+    res
+      .status(201)
+      .json({
+        message: 'created successfully',
+        post,
+        creator: {
+          _id: user._id,
+          name: user.name
+        },
+      });
+
+  } catch (error) {
+    catchError(error, next);
+  }
 }
 
-exports.getPost = (req, res, next) => {
+exports.getPost = async (req, res, next) => {
   const { params: { postId } } = req;
 
-  Post.findById(postId)
-    .then(post => {
-      if (!post) {
-        const error = new Error('post not found');
-        error.statusCode = 404;
-        throw error;
-      }
+  try {
+    const post = await Post.findById(postId);
 
-      res.status(200)
-        .json({ post })
-    })
-    .catch(err => {
-      catchError(err, next);
-    });
+    if (!post) {
+      const error = new Error('post not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    res.status(200).json({ post });
+  } catch (error) {
+    catchError(error, next);
+  }
 }
 
-exports.updatePost = (req, res, next) => {
+exports.updatePost = async (req, res, next) => {
   const errors = validationResult(req);
 
   const { params: { postId }, body, file, userId } = req;
@@ -129,70 +120,68 @@ exports.updatePost = (req, res, next) => {
     throw error;
   }
 
-  Post.findById(postId)
-    .then(post => {
-      if (!post) {
-        const error = new Error('post not found');
-        error.statusCode = 404;
-        throw error;
-      }
+  try {
+    const post = await Post.findById(postId);
 
-      if (post.creator.toString() !== userId) {
-        const error = new Error('user not authorized to do this op');
-        error.statusCode = 403;
-        throw error;
-      }
+    if (!post) {
+      const error = new Error('post not found');
+      error.statusCode = 404;
+      throw error;
+    }
 
-      // Delete old images
-      if (imageUrl !== post.imageUrl) deleteFile(post.imageUrl);
+    if (post.creator.toString() !== userId) {
+      const error = new Error('user not authorized to do this op');
+      error.statusCode = 403;
+      throw error;
+    }
 
-      post.title = title;
-      post.content = content;
-      post.imageUrl = imageUrl;
+    if (imageUrl !== post.imageUrl) deleteFile(post.imageUrl);
 
-      return post.save();
-    })
-    .then(resp => {
-      res.status(200)
-        .json({ post: resp })
-    })
-    .catch(err => {
-      catchError(err, next);
-    });
+    post.title = title;
+    post.content = content;
+    post.imageUrl = imageUrl;
+
+    const updatedPost = await post.save();
+
+    res.status(201).json({ post: updatedPost });
+
+
+  } catch (err) {
+    catchError(err, next);
+  }
 };
 
-exports.deletePost = (req, res, next) => {
+exports.deletePost = async (req, res, next) => {
   const { params: { postId }, userId } = req;
 
-  Post.findById(postId)
-    .then((postDoc) => {
-      if (!postDoc) {
-        const error = new Error('post not found');
-        error.statusCode = 404;
-        throw error;
-      }
+  try {
+    const post = await Post.findById(postId);
+    const user = await User.findById(userId);
 
-      if (postDoc.creator.toString() !== userId) {
-        const error = new Error('user not authorized to do this op');
-        error.statusCode = 403;
-        throw error;
-      }
+    if (!post) {
+      const error = new Error('post not found');
+      error.statusCode = 404;
+      throw error;
+    }
 
-      deleteFile(postDoc.imageUrl);
-      return Post.findByIdAndRemove(postId);
-    })
-    .then(() => User.findById(userId))
-    .then(user => {
-      /** Deleting post related on user models */
+    if (post.creator.toString() !== userId) {
+      const error = new Error('user not authorized to do this op');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    deleteFile(post.imageUrl);
+
+    const deletePost = await Post.findByIdAndRemove(postId);
+
+    if (deletePost) {
       user.posts.pull(postId);
-      return user.save();
-    })
-    .then(() => {
-      res
-        .status(200)
-        .json({ message: 'element deleted' })
-    })
-    .catch(err => {
-      catchError(err, next);
-    });
+      await user.save();
+
+      res.status(200).json({ message: 'element deleted' });
+    };
+
+  } catch (error) {
+    catchError(error, next);
+  }
 }

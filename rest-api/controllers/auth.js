@@ -15,7 +15,7 @@ const User = require('./../models/user');
  */
 const { catchError } = require('../util/catch-error');
 
-exports.signup = (req, res, next) => {
+exports.signup = async (req, res, next) => {
   const errors = validationResult(req);
   const { body } = req;
   const { password } = body;
@@ -27,81 +27,83 @@ exports.signup = (req, res, next) => {
     throw error;
   }
 
-  bcrypt.hash(password, 12)
-    .then(ePass => {
-      const user = new User({
-        ...body,
-        password: ePass
+  try {
+    const secPassword = await bcrypt.hash(password, 12);
+
+    const user = new User({
+      ...body,
+      password: secPassword
+    });
+
+    const savedUser = await user.save();
+
+    res.status(201)
+      .json({
+        message: 'user created',
+        userId: savedUser._id
       });
 
-      return user.save();
-    })
-    .then(result => {
-      res.status(201)
-        .json({
-          message: 'user created',
-          userId: result._id
-        })
-    })
-    .catch(err => { catchError(err, next) })
+  } catch (error) {
+    catchError(error, next)
+  }
 }
 
 
-exports.login = (req, res, next) => {
+exports.login = async (req, res, next) => {
   const { body: { email, password } } = req;
-  let loadedUser;
-  User.findOne({ email })
-    .then(user => {
-      if (!user) {
-        const error = new Error('user not found');
-        error.statusCode = 401;
-        throw error;
-      }
 
-      loadedUser = user;
-      return bcrypt.compare(password, user.password);
-    }).then(isEqual => {
-      if (!isEqual) {
-        const error = new Error('user not found');
-        error.statusCode = 401;
-        throw error;
-      }
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      const error = new Error('invalid credentials');
+      error.statusCode = 401;
+      throw error;
+    }
 
-      const token = jwt.sign({
-        email: loadedUser.email,
-        userId: loadedUser._id.toString()
-      }, 'secret', { expiresIn: '1h' });
+    const isEqual = await bcrypt.compare(password, user.password);
 
-      res.status(200)
-        .json({ token, userId: loadedUser._id.toString() })
-    })
-    .catch(err => { catchError(err, next) })
+    if (!isEqual) {
+      const error = new Error('invalid credentials');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const token = jwt.sign({
+      email: user.email,
+      userId: user._id.toString()
+    }, 'secret', { expiresIn: '1h' });
+
+    res.status(200)
+      .json({ token, userId: user._id.toString() })
+
+  } catch (error) {
+    catchError(error, next);
+  }
 }
 
 
-exports.getStatus = (req, res, next) => {
+exports.getStatus = async (req, res, next) => {
   const { userId } = req;
 
-  User.findById(userId)
-    .then(user => {
-      if (!user) {
-        const error = new Error('user not found');
-        error.statusCode = 404;
-        throw error;
-      }
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      const error = new Error('user not found');
+      error.statusCode = 404;
+      throw error;
+    }
 
-      res
-        .status(200)
-        .json({
-          status: user.status,
-        });
-    })
-    .catch(err => {
-      catchError(err, next);
-    });
+    res
+      .status(200)
+      .json({
+        status: user.status,
+      });
+  } catch (error) {
+    catchError(error, next)
+  }
 }
 
-exports.updateStatus = (req, res, next) => {
+exports.updateStatus = async (req, res, next) => {
   const errors = validationResult(req);
   const { userId, body: { status } } = req;
 
@@ -112,24 +114,24 @@ exports.updateStatus = (req, res, next) => {
     throw error;
   }
 
-  User.findById(userId)
-    .then(user => {
-      if (!user) {
-        const error = new Error('user not found');
-        error.statusCode = 401;
-        throw error;
-      }
-      user.status = status;
-      return user.save()
-    })
-    .then((user) => {
-      res
-        .status(201)
-        .json({
-          status: user.status
-        })
-    })
-    .catch(err => {
-      catchError(err, next);
-    });
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      const error = new Error('user not found');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    user.status = status;
+    const updatedUser = await user.save();
+
+    res
+      .status(201)
+      .json({
+        status: updatedUser.status
+      })
+  } catch (error) {
+    catchError(error, next);
+  }
 }
