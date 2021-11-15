@@ -184,4 +184,8 @@ dist
 */images/
 */images/*
 */data/invoices/
+
+#Local SSL
+server.cert
+server.key
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,node
