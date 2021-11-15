@@ -3,6 +3,7 @@
  */
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
@@ -51,6 +52,9 @@ const store = new MongoDBStore({
   uri: MONGODB_URI,
   collection: 'sessions',
 });
+
+const privateKey = fs.readFileSync(path.join(rootDir, 'server.key'));
+const certificate = fs.readFileSync(path.join(rootDir, 'server.cert'));
 
 const csrfProtection = csrf();
 
@@ -147,6 +151,11 @@ app.use((error, req, res, next) => {
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
+    //manual set of SSL
+    // https.createServer({
+    //   key: privateKey,
+    //   cert: certificate
+    // }, app)
     app.listen(process.env.PORT || 3000, (err) => {
       if (err) throw new Error(err)
       console.log('ready to go');
