@@ -53,8 +53,8 @@ const store = new MongoDBStore({
   collection: 'sessions',
 });
 
-const privateKey = fs.readFileSync(path.join(rootDir, 'server.key'));
-const certificate = fs.readFileSync(path.join(rootDir, 'server.cert'));
+// const privateKey = fs.readFileSync(path.join(rootDir, 'server.key'));
+// const certificate = fs.readFileSync(path.join(rootDir, 'server.cert'));
 
 const csrfProtection = csrf();
 
