@@ -109,7 +109,6 @@ app.use('/graphql', graphqlHTTP({
   rootValue: graphqlResolver,
   graphiql: true,
   customFormatErrorFn(err) {
-    console.log('AAA', err);
     if (!err.originalError) return err;
 
     const {
