@@ -8,10 +8,24 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const { graphqlHTTP } = require('express-graphql');
 
-const MONGODB_URI = 'mongodb://localhost:27017/messages';
-
+/*
+ * GraphQL
+ */
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
+
+/*
+ * Middleware
+ */
+const auth = require('./middleware/is-auth');
+
+/*
+ * Others
+ */
+const { deleteFile } = require('./util/file');
+
+const MONGODB_URI = 'mongodb://localhost:27017/messages';
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -59,11 +73,43 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(auth);
+
+/*
+ *  GraphQL only reads JSON, we need to created endpoints to handle files
+ */
+app.put('/post-image', (req, res, next) => {
+  const { file, body, isAuth } = req;
+  const { oldPath } = body;
+
+  if (!isAuth) {
+    const error = new Error('not auth');
+    error.code = 401;
+    throw error;
+  }
+
+  if (!file) {
+    return res.status(200).json({message: 'no file provided'});
+  }
+
+  if (oldPath) deleteFile(oldPath);
+
+
+  return res
+    .status(201)
+    .json({
+      message: 'file stored',
+      filePath: file.path
+    })
+
+});
+
 app.use('/graphql', graphqlHTTP({
   schema: graphqlSchema,
   rootValue: graphqlResolver,
   graphiql: true,
   customFormatErrorFn(err) {
+    console.log('AAA', err);
     if (!err.originalError) return err;
 
     const {
