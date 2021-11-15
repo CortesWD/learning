@@ -2,6 +2,7 @@
  * Dependencies
  */
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
@@ -10,8 +11,9 @@ const MongoDBStore = require('connect-mongodb-session')(session);
 const csrf = require('csurf');
 const flash = require('connect-flash');
 const multer = require('multer');
-
-const MONGODB_URI = 'mongodb://localhost:27017/shop';
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
 
 /*
  * Models
@@ -30,6 +32,18 @@ const authRoutes = require('./routes/auth');
  */
 const { get404, get500 } = require('./controllers/errors');
 const { catchError } = require('./util/catch-error');
+
+/*
+ * Others
+ */
+
+const rootDir = require('./util/path');
+
+// const MONGODB_URI = process.env.NODE_ENV === 'production' 
+//   ? `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@cluster0.g1of1.mongodb.net/${process.env.MONGO_DB}`
+//   : 'mongodb://localhost:27017/shop';
+
+const MONGODB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@cluster0.g1of1.mongodb.net/${process.env.MONGO_DB}`;
 
 const app = express();
 
@@ -63,6 +77,16 @@ const fileFilter = (req, file, cb) => {
 app.set('view engine', 'ejs');
 /* views is the default dir */
 app.set('views', 'views');
+
+const accessLogStream = fs.WriteStream(
+  path.join(rootDir, 'access.log'),
+  { flags: 'a' }
+);
+
+app.use(helmet());
+app.use(compression());
+app.use(morgan('combined', { stream: accessLogStream }));
+
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(multer({ storage: fileStorage, fileFilter }).single('image'));
@@ -123,7 +147,7 @@ app.use((error, req, res, next) => {
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    app.listen(3000, (err) => {
+    app.listen(process.env.PORT || 3000, (err) => {
       if (err) throw new Error(err)
       console.log('ready to go');
     });
