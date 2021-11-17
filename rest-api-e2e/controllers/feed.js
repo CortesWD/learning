@@ -70,7 +70,7 @@ exports.createPost = async (req, res, next) => {
     const user = await User.findById(userId);
     user.posts.push(post);
 
-    await user.save();
+    const savedUser = await user.save();
 
     const postData = {
       post: {
@@ -82,10 +82,10 @@ exports.createPost = async (req, res, next) => {
       }
     };
 
-    getIO().emit('posts', {
-      action: 'create',
-      ...postData
-    });
+    // getIO().emit('posts', {
+    //   action: 'create',
+    //   ...postData
+    // });
 
     res
       .status(201)
@@ -93,6 +93,8 @@ exports.createPost = async (req, res, next) => {
         message: 'created successfully',
         ...postData
       });
+
+    return savedUser;
 
   } catch (error) {
     catchError(error, next);
