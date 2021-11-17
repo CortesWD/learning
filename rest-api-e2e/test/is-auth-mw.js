@@ -51,5 +51,4 @@ describe('middleware/is-auth', () => {
 
     jwt.verify.restore();
   });
-
 });

@@ -48,7 +48,6 @@ exports.signup = async (req, res, next) => {
   }
 }
 
-
 exports.login = async (req, res, next) => {
   const { body: { email, password } } = req;
 
@@ -75,12 +74,11 @@ exports.login = async (req, res, next) => {
 
     res.status(200)
       .json({ token, userId: user._id.toString() })
-
+    return;
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 }
-
 
 exports.getStatus = async (req, res, next) => {
   const { userId } = req;
