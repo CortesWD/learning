@@ -15,7 +15,7 @@ const { catchError } = require('../util/catch-error');
 
 const transporter = nodemailer.createTransport(sendgridTransport({
   auth: {
-    api_key: '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'
+    api_key:  process.env.API_SENDGRID
   }
 }));
 
