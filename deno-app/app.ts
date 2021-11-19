@@ -1,15 +1,17 @@
-const text = 'hey';
+import { Application } from "https://deno.land/x/oak/mod.ts";
 
-const encoder = new TextEncoder();
+import todosRouter from "./routes/todos.ts";
 
-const data = encoder.encode(text);
+const app = new Application();
 
-//Deno needs correct permissions to execute tasks
-// to write should be --allow-write
-// built-in features: https://doc.deno.land/builtin/stable
-// permissions https://deno.land/manual@v1.16.2/getting_started/permissions
+//Use async/await if we create middlewares with OAK that are async
+// so it will execute in the expected order
+app.use(async (ctx, next) => {
+  console.log('MW');
+  await next();
+})
 
-Deno.writeFile('./message.txt', data)
-  .then(() => {
-    console.warn('file created')
-  });
+app.use(todosRouter.routes());
+app.use(todosRouter.allowedMethods());
+
+await app.listen({ port: 3000 });
