@@ -1,4 +1,4 @@
-const text = 'hey nea';
+const text = 'hey';
 
 const encoder = new TextEncoder();
 
